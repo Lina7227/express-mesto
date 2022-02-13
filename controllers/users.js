@@ -7,34 +7,33 @@ const ERROR_DEFAULT = 500;
 const getUsers = (req, res) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch(() => res.status(ERROR_DEFAULT).send({ message: `Ошибка по умолчанию.`}));
+    .catch(() => res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.' }));
 };
 
 const getUserId = async (req, res) => {
   User.findById(req.params.id)
     .then((user) => {
       if (!user) {
-        return res.status(ERROR_LACK).send({ message: 'Пользователь по указанному _id не найден.' });
+        return res.status(ERROR_LACK).send({ message: 'Пользователь по указанному _id не найден' });
       }
       return res.send(user);
     })
-    .catch(() => res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.'}));
+    .catch(() => res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.' }));
 };
 
 const createUser = (req, res) => {
+  const { name, about, avatar } = req.body;
 
-  const {name, about, avatar} = req.body;
-
-  User.create({name, about, avatar})
-    .then(user => res.send({data: user}))
+  User.create({ name, about, avatar })
+    .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-      res.status(ERROR_CODE).send({ message: 'Переданы некорректные данные при создании пользователя. ' });
-    } else {
-      res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.' });
-    }
-  });
-}
+        res.status(ERROR_CODE).send({ message: 'Переданы некорректные данные при создании пользователя. ' });
+      } else {
+        res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.' });
+      }
+    });
+};
 
 const updateUserInfo = (req, res) => {
   const { id } = req.user._id;
@@ -54,7 +53,7 @@ const updateUserInfo = (req, res) => {
         res.status(ERROR_DEFAULT).send({ message: 'Ошибка по умолчанию.' });
       }
     });
-}
+};
 
 const updateUserAvatar = (req, res) => {
   const { id } = req.user._id;
@@ -76,11 +75,10 @@ const updateUserAvatar = (req, res) => {
     });
 };
 
-
 module.exports = {
   getUsers,
   getUserId,
   createUser,
   updateUserInfo,
-  updateUserAvatar
-}
+  updateUserAvatar,
+};
