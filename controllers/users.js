@@ -12,7 +12,7 @@ const getUsers = (req, res) => {
 };
 
 const getUserId = async (req, res) => {
-  User.findById(req.params.id)
+  User.findById(req.params.userId)
     .orFail(new Error('NotValidId'))
     .then((user) => res.send(user))
     .catch((err) => {

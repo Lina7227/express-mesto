@@ -27,7 +27,7 @@ const createCard = (req, res) => {
 };
 
 const deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.id)
+  Card.findByIdAndRemove(req.params.cardId)
     .orFail(new Error('NotValidId'))
     .then((card) => {
       res.send(card);
