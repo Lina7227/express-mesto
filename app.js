@@ -1,28 +1,31 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const { errors } = require('celebrate');
 const router = require('./routes/index');
+const auth = require('./middlewares/auth');
+const { serverError } = require('./middlewares/ServerError');
 
 const { PORT = 3000 } = process.env;
 const app = express();
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
-
-app.use((req, res, next) => {
-  req.user = {
-    _id: '6206406c4b73f0a2556d583f', // вставьте сюда _id созданного в предыдущем пункте пользователя
-  };
-
-  next();
-});
-
 app.use(express.json());
+
+app.use(require('./routes/auth'));
+
+app.use(auth);
 app.use(router);
+app.use(errors());
+app.use(serverError);
 app.listen(PORT, () => {
 
 });
