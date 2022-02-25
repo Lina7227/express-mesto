@@ -2,6 +2,11 @@ const Card = require('../models/card');
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
 const Forbidden = require('../errors/Forbidden');
+const {
+  incorrectData,
+  notFoundCardId,
+  noRightsDeelete,
+} = require('../errors/errorMessages');
 
 const getCards = (req, res, next) => {
   Card.find({})
@@ -17,11 +22,10 @@ const createCard = (req, res, next) => {
     .then((card) => res.status(200).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest(`Ошибка ${err}. Переданы некорректные данные при создании карточки.`));
-      } else {
-        next(err);
+        throw new BadRequest(incorrectData);
       }
-    });
+    })
+    .catch(next);
 };
 
 const deleteCard = (req, res, next) => {
@@ -32,14 +36,14 @@ const deleteCard = (req, res, next) => {
         card.remove();
         res.send({ message: 'Карточка удалена' });
       } else {
-        throw new Forbidden('У вас нет прав для удаления этой карточки');
+        throw new Forbidden(noRightsDeelete);
       }
     })
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Карточка с указанным _id не найдена.'));
+        next(new NotFound(notFoundCardId));
       } else if (err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные.'));
+        next(new BadRequest(incorrectData));
       } else {
         next(err);
       }
@@ -58,9 +62,9 @@ const likeCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Передан несуществующий _id карточки.'));
+        next(new NotFound(notFoundCardId));
       } else if (err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные для постановки лайка.'));
+        next(new BadRequest(incorrectData));
       } else {
         next(err);
       }
@@ -79,9 +83,9 @@ const dislikeCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Передан несуществующий _id карточки.'));
+        next(new NotFound(notFoundCardId));
       } else if (err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные для снятии лайка.'));
+        next(new BadRequest(incorrectData));
       } else {
         next(err);
       }

@@ -4,6 +4,15 @@ const User = require('../models/user');
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
 const ConflictingPrompt = require('../errors/ConflictingPrompt');
+const Unauthorized = require('../errors/Unauthorized ');
+const {
+  invalidLink,
+  invalidAuth,
+  notFoundUserId,
+  incorrectData,
+  userAlreadyBe,
+  userNotAuthorized,
+} = require('../errors/errorMessages');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -19,9 +28,9 @@ const getUserId = async (req, res, next) => {
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Пользователь по указанному _id не найден'));
+        next(new NotFound(notFoundUserId));
       } else if (err.user === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные.'));
+        next(new BadRequest(incorrectData));
       } else {
         next(err);
       }
@@ -29,16 +38,16 @@ const getUserId = async (req, res, next) => {
 };
 
 const getUser = (req, res, next) => {
-  User.findOne({ _id: req.user._id })
+  User.findById(req.user._id)
     .orFail(new Error('NotValidId'))
     .then((user) => {
-      res.send({ data: user });
+      res.send(user);
     })
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound('Пользователь по указанному _id не найден'));
+      if (err.kind === 'ObjectId' || err.message === 'NotValidId') {
+        next(new NotFound(notFoundUserId));
       } else if (err.user === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные.'));
+        next(new BadRequest(incorrectData));
       } else {
         next(err);
       }
@@ -54,12 +63,15 @@ const createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.send({ data: user }))
+    .then((({ _id }) => User.findById(_id)))
+    .then((user) => {
+      res.send(user.toJSON());
+    })
     .catch((err) => {
       if (err.message === 'ValidationError') {
-        throw new BadRequest('Переданы некорректные данные.');
+        throw new BadRequest(incorrectData);
       } else if (err.name === 'MongoError' && err.code === 11000) {
-        throw new ConflictingPrompt('Пользователь с таким E-mail уже существует');
+        throw new ConflictingPrompt(userAlreadyBe);
       }
     })
     .catch(next);
@@ -69,14 +81,14 @@ const updateUserInfo = (req, res, next) => {
   const { id } = req.user._id;
   const { name, about } = req.body;
 
-  User.findByIdAndUpdate(id, { name, about }, { new: true, runValidators: true })
+  User.findByIdAndUpdate(id, { name, about }, { new: true, runValidators: true, upsert: true })
     .orFail(new Error('NotValidId'))
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.send(user))
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Пользователь по указанному _id не найден'));
+        next(new NotFound(notFoundUserId));
       } else if (err.name === 'ValidationError' || err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные при обновлении профиля.'));
+        next(new BadRequest(userAlreadyBe));
       } else {
         next(err);
       }
@@ -87,14 +99,14 @@ const updateUserAvatar = (req, res, next) => {
   const { id } = req.user._id;
   const { avatar } = req.body;
 
-  User.findByIdAndUpdate(id, { avatar }, { new: true, runValidators: true })
+  User.findByIdAndUpdate(id, { avatar }, { new: true, runValidators: true, upsert: true })
     .orFail(new Error('NotValidId'))
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.send(user))
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Пользователь по указанному _id не найден'));
+        next(new NotFound(notFoundUserId));
       } else if (err.name === 'ValidationError' || err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные при обновлении аватара.'));
+        next(new BadRequest(invalidLink));
       } else {
         next(err);
       }
@@ -117,7 +129,9 @@ const login = (req, res, next) => {
     })
     .catch((err) => {
       if (err.message === 'NotValidId') {
-        next(new NotFound('Пользователь по указанному _id не найден'));
+        next(new NotFound(invalidAuth));
+      } else if (err) {
+        next(new Unauthorized(userNotAuthorized));
       }
     })
     .catch(next);
