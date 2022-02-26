@@ -24,12 +24,10 @@ const getUsers = (req, res, next) => {
 
 const getUserId = async (req, res, next) => {
   User.findById(req.params.userId)
-    .orFail(new Error('NotValidId'))
+    .orFail(() => new NotFound(notFoundUserId))
     .then((user) => res.send(user))
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundUserId));
-      } else if (err.user === 'CastError') {
+      if (err.user === 'CastError') {
         next(new BadRequest(incorrectData));
       } else {
         next(err);
@@ -70,24 +68,23 @@ const createUser = (req, res, next) => {
     .catch((err) => {
       if (err.message === 'ValidationError') {
         throw new BadRequest(incorrectData);
-      } else if (err.name === 'MongoError' && err.code === 11000) {
+      } else if (err.code === 11000) {
         throw new ConflictingPrompt(userAlreadyBe);
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 const updateUserInfo = (req, res, next) => {
   const { id } = req.user._id;
   const { name, about } = req.body;
 
-  User.findByIdAndUpdate(id, { name, about }, { new: true, runValidators: true, upsert: true })
-    .orFail(new Error('NotValidId'))
+  User.findByIdAndUpdate(id, { name, about }, { new: true, runValidators: true })
+    .orFail(() => new NotFound(notFoundUserId))
     .then((user) => res.send(user))
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundUserId));
-      } else if (err.name === 'ValidationError' || err.name === 'CastError') {
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
         next(new BadRequest(userAlreadyBe));
       } else {
         next(err);
@@ -99,13 +96,11 @@ const updateUserAvatar = (req, res, next) => {
   const { id } = req.user._id;
   const { avatar } = req.body;
 
-  User.findByIdAndUpdate(id, { avatar }, { new: true, runValidators: true, upsert: true })
-    .orFail(new Error('NotValidId'))
+  User.findByIdAndUpdate(id, { avatar }, { new: true, runValidators: true })
+    .orFail(() => new NotFound(notFoundUserId))
     .then((user) => res.send(user))
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundUserId));
-      } else if (err.name === 'ValidationError' || err.name === 'CastError') {
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
         next(new BadRequest(invalidLink));
       } else {
         next(err);
@@ -117,7 +112,7 @@ const login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
-    .orFail(new Error('NotValidId'))
+    .orFail(() => new Unauthorized(invalidAuth))
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
       res.cookie('jwt', token, {
@@ -128,9 +123,7 @@ const login = (req, res, next) => {
         .status(200).send({ jwt: token });
     })
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(invalidAuth));
-      } else if (err) {
+      if (err) {
         next(new Unauthorized(userNotAuthorized));
       }
     })

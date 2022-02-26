@@ -7,8 +7,8 @@ const NotFound = require('../errors/NotFound');
 router.use('/users', auth, usersRouter);
 router.use('/cards', auth, cardsRouter);
 
-router.use((req, res) => {
-  res(new NotFound({ message: `По адресу ${req.path} ничего нет` }));
+router.use((req, next) => {
+  next(new NotFound(`По адресу ${req.path} ничего нет`));
 });
 
 module.exports = router;

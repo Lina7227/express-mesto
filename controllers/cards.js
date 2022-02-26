@@ -22,27 +22,26 @@ const createCard = (req, res, next) => {
     .then((card) => res.status(200).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new BadRequest(incorrectData);
+        next(new BadRequest(incorrectData));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
+/* eslint-disable consistent-return */
 const deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
-    .orFail(new Error('NotValidId'))
+    .orFail(() => new NotFound(notFoundCardId))
     .then((card) => {
       if (card.owner._id.toString() === req.user._id) {
-        card.remove();
-        res.send({ message: 'Карточка удалена' });
-      } else {
-        throw new Forbidden(noRightsDeelete);
+        return card.remove()
+          .then(() => res.send({ message: 'Карточка удалена' }))
+          .catch(() => next(new Forbidden(noRightsDeelete)));
       }
     })
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundCardId));
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new BadRequest(incorrectData));
       } else {
         next(err);
@@ -56,14 +55,12 @@ const likeCard = (req, res, next) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new Error('NotValidId'))
+    .orFail(() => new NotFound(notFoundCardId))
     .then((card) => {
       res.send(card);
     })
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundCardId));
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new BadRequest(incorrectData));
       } else {
         next(err);
@@ -77,14 +74,12 @@ const dislikeCard = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new Error('NotValidId'))
+    .orFail(() => new NotFound(notFoundCardId))
     .then((card) => {
       res.send(card);
     })
     .catch((err) => {
-      if (err.message === 'NotValidId') {
-        next(new NotFound(notFoundCardId));
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new BadRequest(incorrectData));
       } else {
         next(err);
