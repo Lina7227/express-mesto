@@ -29,16 +29,15 @@ const createCard = (req, res, next) => {
     });
 };
 
-/* eslint-disable consistent-return */
 const deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
     .orFail(() => new NotFound(notFoundCardId))
     .then((card) => {
       if (card.owner._id.toString() === req.user._id) {
         return card.remove()
-          .then(() => res.send({ message: 'Карточка удалена' }))
-          .catch(() => next(new Forbidden(noRightsDeelete)));
+          .then(() => res.send({ message: 'Карточка удалена' }));
       }
+      return next(new Forbidden(noRightsDeelete));
     })
     .catch((err) => {
       if (err.name === 'CastError') {

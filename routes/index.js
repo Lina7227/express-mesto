@@ -7,7 +7,7 @@ const NotFound = require('../errors/NotFound');
 router.use('/users', auth, usersRouter);
 router.use('/cards', auth, cardsRouter);
 
-router.use((req, next) => {
+router.use((req, res, next) => {
   next(new NotFound(`По адресу ${req.path} ничего нет`));
 });
 

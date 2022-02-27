@@ -7,7 +7,6 @@ const ConflictingPrompt = require('../errors/ConflictingPrompt');
 const Unauthorized = require('../errors/Unauthorized ');
 const {
   invalidLink,
-  invalidAuth,
   notFoundUserId,
   incorrectData,
   userAlreadyBe,
@@ -67,9 +66,9 @@ const createUser = (req, res, next) => {
     })
     .catch((err) => {
       if (err.message === 'ValidationError') {
-        throw new BadRequest(incorrectData);
+        next(new BadRequest(incorrectData));
       } else if (err.code === 11000) {
-        throw new ConflictingPrompt(userAlreadyBe);
+        next(new ConflictingPrompt(userAlreadyBe));
       } else {
         next(err);
       }
@@ -112,22 +111,18 @@ const login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
-    .orFail(() => new Unauthorized(invalidAuth))
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
       res.cookie('jwt', token, {
-        maxAge: '7d',
+        maxAge: 3600000,
         httpOnly: true,
         sameSite: true,
       })
         .status(200).send({ jwt: token });
     })
-    .catch((err) => {
-      if (err) {
-        next(new Unauthorized(userNotAuthorized));
-      }
-    })
-    .catch(next);
+    .catch(() => {
+      next(new Unauthorized(userNotAuthorized));
+    });
 };
 
 module.exports = {

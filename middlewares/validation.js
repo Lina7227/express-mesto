@@ -21,9 +21,16 @@ const validatyAvatar = celebrate({
   }),
 });
 
-const validatyId = celebrate({
+const validatyUserId = celebrate({
   params: Joi.object().keys({
-    id: Joi.string().hex().length(24).required()
+    userId: Joi.string().hex().length(24).required()
+      .alphanum(),
+  }),
+});
+
+const validatyCardId = celebrate({
+  params: Joi.object().keys({
+    cardId: Joi.string().hex().length(24).required()
       .alphanum(),
   }),
 });
@@ -55,7 +62,8 @@ const validatySigIn = celebrate({
 module.exports = {
   validatyUser,
   validatyAvatar,
-  validatyId,
+  validatyUserId,
+  validatyCardId,
   validatyCard,
   validatySigUp,
   validatySigIn,
